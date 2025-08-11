@@ -10,6 +10,7 @@ out/
 *.sln.docstates
 
 # VSCode / Visual Studio settings
+.vs
 .vscode/
 .idea/
 *.code-workspace
