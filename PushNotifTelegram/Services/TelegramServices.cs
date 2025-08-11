@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using PushNotifTelegram.Exceptions;
 using PushNotifTelegram.Helpers;
+using PushNotifTelegram.Models;
 using TL;
 using WTelegram;
 
@@ -99,6 +100,11 @@ namespace PushNotifTelegram.Services
 
         public async Task SendMessageToPhoneAsync(string phoneNumber, string message)
         {
+            bool isValidPhoneNumber = Validation.IsValidPhoneNumber(phoneNumber);
+            if (!isValidPhoneNumber)
+            {
+                throw new CustomException.BadRequestException("Format nomor telepon tidak valid");
+            }
             await EnsureConnectedAsync();
             var user = await ResolveUserAsync("phoneNumber", phoneNumber);
             await _client.SendMessageAsync(user, message);

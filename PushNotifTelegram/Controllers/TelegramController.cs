@@ -40,6 +40,10 @@ namespace PushNotifTelegram.Controllers
                 }
                 return Ok(new ResponseSendMessage { status = "success", message = "Pesan terkirim" });
             }
+            catch (CustomException.BadRequestException ex)
+            {
+                return BadRequest(new ResponseSendMessage { status = "error", message = ex.Message });
+            }
             catch (CustomException.NotConnectedException ex)
             {
                 return StatusCode(503, new ResponseSendMessage { status = "error", message = ex.Message });
