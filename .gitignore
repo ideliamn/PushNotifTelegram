@@ -1,0 +1,58 @@
+# Build results
+bin/
+obj/
+out/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VSCode / Visual Studio settings
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.ncb
+*.cache
+*.pdb
+
+# Package restore folders
+packages/
+node_modules/
+
+# Generated files
+wwwroot/lib/
+wwwroot/dist/
+
+# ASP.NET specific
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Docker
+docker-compose.override.yml
+.docker/
+*.dockerfile
+
+# Secrets & Configs
+appsettings.Development.json
+appsettings.Local.json
+.env
+
+# Publish output
+publish/
+*.publish.xml
+
+# Others
+Thumbs.db
+.DS_Store
