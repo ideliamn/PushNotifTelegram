@@ -4,10 +4,13 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="OpenTl.ClientApi" Version="0.7.97" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="WTelegramClient" Version="4.3.7" />
   </ItemGroup>
 
 </Project>
