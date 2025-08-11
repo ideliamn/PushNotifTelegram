@@ -1,4 +1,8 @@
-﻿using TL;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using PushNotifTelegram.Exceptions;
+using PushNotifTelegram.Helpers;
+using TL;
 using WTelegram;
 
 namespace PushNotifTelegram.Services
@@ -18,58 +22,85 @@ namespace PushNotifTelegram.Services
             });
         }
 
-        private string Config(string what)
+        private string Config(string what) => what switch
         {
-            switch (what)
-            {
-                case "api_id": return _config["Telegram:ApiId"];
-                case "api_hash": return _config["Telegram:ApiHash"];
-                case "phone_number": return _config["Telegram:PhoneNumber"];
-                case "verification_code":
-                    Console.Write("Masukkan kode OTP dari Telegram: ");
-                    return Console.ReadLine();
-                case "password":
-                    Console.Write("Masukkan password 2FA: ");
-                    return Console.ReadLine();
-                default: return null;
-            }
+            "api_id" => _config["Telegram:ApiId"],
+            "api_hash" => _config["Telegram:ApiHash"],
+            "phone_number" => _config["Telegram:PhoneNumber"],
+            "verification_code" => ConsoleInput("Masukkan kode OTP dari Telegram: "),
+            "password" => ConsoleInput("Masukkan password 2FA: "),
+            _ => null
+        };
+
+        private static string ConsoleInput(string message)
+        {
+            Console.Write(message);
+            return Console.ReadLine();
         }
 
         public async Task InitAsync()
         {
+            if (_isConnected)
+            {
+                return;
+            }
+            Console.WriteLine("Connecting Telegram Client...");
+            _isConnected = true;
+        }
+
+        private async Task EnsureConnectedAsync()
+        {
+            await InitAsync();
             if (!_isConnected)
             {
-                await _client.ConnectAsync();
-                var me = await _client.LoginUserIfNeeded();
-                Console.WriteLine($"Connected as {me.username ?? me.first_name}");
-                _isConnected = true;
+                throw new CustomException.NotConnectedException("Telegram tidak terhubung");
             }
         }
 
+        private async Task<User> ResolveUserAsync(string type, string value)
+        {
+            try
+            {
+                User user;
+                if (type == "username")
+                {
+                    var result = await _client.Contacts_ResolveUsername(value);
+                    user = result.users.Values.OfType<User>().FirstOrDefault();
+                }
+                else if (type == "phoneNumber")
+                {
+                    var result = await _client.Contacts_ResolvePhone(value);
+                    user = result.users.Values.OfType<User>().FirstOrDefault();
+                }
+                else
+                {
+                    throw new ArgumentException("Type harus username atau phoneNumber");
+                }
+
+                if (user == null)
+                    throw new CustomException.UserNotFoundException($"User {value} tidak ditemukan");
+
+                return user;
+            }
+            catch (TL.RpcException ex)
+            {
+                RPCExceptionHelper.RPCExceptionHandler(ex);
+                throw;
+            }
+        }
+
+
         public async Task SendMessageToUsernameAsync(string username, string message)
         {
-            if (!_isConnected)
-            {
-                Console.WriteLine("Client belum connect, InitAsync...");
-            }
-
-            var user = await _client.Contacts_ResolveUsername(username);
+            await EnsureConnectedAsync();
+            var user = await ResolveUserAsync("username", username);
             await _client.SendMessageAsync(user, message);
         }
 
         public async Task SendMessageToPhoneAsync(string phoneNumber, string message)
         {
-            if (!_isConnected) {
-                Console.WriteLine("Client belum connect, InitAsync...");
-            }
-
-            var result = await _client.Contacts_ResolvePhone(phoneNumber);
-            var user = result.users.Values.FirstOrDefault();
-            if (user == null)
-            {
-                throw new Exception($"User dengan nomor {phoneNumber} tidak ditemukan");
-            }
-
+            await EnsureConnectedAsync();
+            var user = await ResolveUserAsync("phoneNumber", phoneNumber);
             await _client.SendMessageAsync(user, message);
         }
 

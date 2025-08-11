@@ -13,6 +13,12 @@ builder.Services.AddSingleton<TelegramServices>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var telegram = scope.ServiceProvider.GetRequiredService<TelegramServices>();
+    await telegram.InitAsync();
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OpenTl.Schema.Messages;
+using PushNotifTelegram.Exceptions;
 using PushNotifTelegram.Models;
 using PushNotifTelegram.Services;
 using TL;
@@ -16,25 +17,45 @@ namespace PushNotifTelegram.Controllers
         public TelegramController(TelegramServices telegramService)
         {
             _telegramService = telegramService;
+            _telegramService.InitAsync().GetAwaiter().GetResult();
         }
 
         [HttpPost("send")]
         public async Task<IActionResult> Send([FromBody] Models.RequestSendMessage param)
         {
-            await _telegramService.InitAsync();
-            if (param.username == null && param.phone_number == null)
+            if (string.IsNullOrWhiteSpace(param.username) && string.IsNullOrWhiteSpace(param.phone_number))
             {
-                return BadRequest("Masukkan username / nomor telepon!");
+                return BadRequest(new ResponseSendMessage { status = "error", message = "Masukkan username atau nomor telepon!" });
             }
-            if (param.username != null)
+
+            try
             {
-                await _telegramService.SendMessageToUsernameAsync(param.username, param.message);
+                if (param.username != null && !string.IsNullOrWhiteSpace(param.username))
+                {
+                    await _telegramService.SendMessageToUsernameAsync(param.username, param.message);
+                }
+                if (param.phone_number != null && !string.IsNullOrWhiteSpace(param.phone_number))
+                {
+                    await _telegramService.SendMessageToPhoneAsync(param.phone_number, param.message);
+                }
+                return Ok(new ResponseSendMessage { status = "success", message = "Pesan terkirim" });
             }
-            if (param.phone_number != null)
+            catch (CustomException.NotConnectedException ex)
             {
-                await _telegramService.SendMessageToPhoneAsync(param.phone_number, param.message);
+                return StatusCode(503, new ResponseSendMessage { status = "error", message = ex.Message });
             }
-            return Ok("Pesan terkirim");
+            catch (CustomException.UserNotFoundException ex)
+            {
+                return NotFound(new ResponseSendMessage { status = "error", message = ex.Message });
+            }
+            catch (CustomException.TooManyRequestsException ex)
+            {
+                return StatusCode(429, new ResponseSendMessage { status = "error", message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ResponseSendMessage { status = "error", message = "Terjadi kesalahan pada server: " });
+            }
         }
     }
 }
